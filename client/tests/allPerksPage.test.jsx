@@ -51,7 +51,39 @@ describe('AllPerks page (Directory)', () => {
   */
 
   test('lists public perks and responds to merchant filtering', async () => {
-    // This will always fail until the TODO above is implemented.
-    expect(true).toBe(false);
+    const seededPerk = global.__TEST_CONTEXT__.seededPerk;
+
+    // Render the page so it performs its real HTTP fetch.
+    renderWithRouter(
+      <Routes>
+        <Route path="/explore" element={<AllPerks />} />
+      </Routes>,
+      { initialEntries: ['/explore'] }
+    );
+
+    // Wait for the initial fetch to complete and the seeded card to appear.
+    await waitFor(() => {
+      expect(screen.getByText(seededPerk.title)).toBeInTheDocument();
+    });
+
+    // The merchant select is the only combobox on the page.
+    const merchantSelect = screen.getByRole('combobox');
+
+    // Choose the seeded record's merchant.
+    fireEvent.change(merchantSelect, { target: { value: seededPerk.merchant } });
+
+    // After merchant selection the component debounces (500ms) then performs a
+    // fetch. Wait for the summary text to update to the filtered count. Use an
+    // extended timeout to accommodate the debounce + network latency.
+    await waitFor(
+      () => {
+        const summary = screen.getByText(/showing/i);
+        expect(summary).toHaveTextContent('Showing');
+        // When filtered by the seeded merchant we expect the count to include
+        // '1' (the seeded record). This assertion will retry until it passes.
+        expect(summary).toHaveTextContent('1');
+      },
+      { timeout: 5000 }
+    );
   });
 });
